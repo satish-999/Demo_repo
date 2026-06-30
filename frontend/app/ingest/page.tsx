@@ -2,8 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-
-const API_BASE = process.env.NEXT_PUBLIC_API_URL || "";
+import { apiUrl, resolveApiBase } from "@/lib/backend";
 
 export default function IngestPage() {
   const router = useRouter();
@@ -11,11 +10,13 @@ export default function IngestPage() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [backendOk, setBackendOk] = useState<boolean | null>(null);
+  const [apiBase, setApiBase] = useState<string | null>(null);
 
   useEffect(() => {
-    fetch(`${API_BASE}/api/v1/health`)
-      .then((res) => setBackendOk(res.ok))
-      .catch(() => setBackendOk(false));
+    resolveApiBase().then((base) => {
+      setApiBase(base);
+      setBackendOk(Boolean(base));
+    });
   }, []);
 
   async function onSubmit(e: React.FormEvent<HTMLFormElement>) {
@@ -23,9 +24,10 @@ export default function IngestPage() {
     setLoading(true);
     setError(null);
     const form = new FormData(e.currentTarget);
+    const base = apiBase || (await resolveApiBase());
 
     try {
-      if (backendOk === false) {
+      if (!base) {
         throw new Error(
           "Backend is not running. Open a terminal and run: cd backend && PYTHONPATH=. python3 -m uvicorn app.main:app --reload --port 8000"
         );
@@ -46,7 +48,7 @@ export default function IngestPage() {
         if (audio?.size) body.append("audio", audio);
         if (script?.size) body.append("script", script);
 
-        const res = await fetch(`${API_BASE}/api/v1/titles/ingest/upload`, {
+        const res = await fetch(apiUrl("/api/v1/titles/ingest/upload", base), {
           method: "POST",
           body,
         });
@@ -54,7 +56,7 @@ export default function IngestPage() {
         const title = await res.json();
         router.push(`/titles/${title.id}`);
       } else {
-        const res = await fetch(`${API_BASE}/api/v1/titles/ingest`, {
+        const res = await fetch(apiUrl("/api/v1/titles/ingest", base), {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
@@ -75,7 +77,7 @@ export default function IngestPage() {
       const message = err instanceof Error ? err.message : "Ingest failed";
       if (message === "Failed to fetch") {
         setError(
-          "Cannot reach backend API. Start backend first: cd backend && PYTHONPATH=. python3 -m uvicorn app.main:app --reload --port 8000"
+          "Cannot reach backend API. Confirm http://127.0.0.1:8000/api/v1/health works, then restart frontend: cd frontend && npm run dev"
         );
       } else {
         setError(message);
@@ -94,22 +96,22 @@ export default function IngestPage() {
 
       {backendOk === false && (
         <div className="card" style={{ borderColor: "#ef4444", marginBottom: 16 }}>
-          <strong style={{ color: "#fca5a5" }}>Backend not connected</strong>
+          <strong style={{ color: "#fca5a5" }}>Backend not connected from browser</strong>
           <p style={{ margin: "8px 0 0", color: "#94a3b8" }}>
-            The web UI is running, but the scoring API on port 8000 is not. Open a second terminal and run:
+            If <a href="http://127.0.0.1:8000/api/v1/health" target="_blank">127.0.0.1:8000/health</a> works in a new tab
+            but this page still fails, restart the frontend after pulling latest code:
           </p>
           <pre style={{ background: "#0b1020", padding: 12, borderRadius: 8, overflow: "auto" }}>
-{`cd backend
-PYTHONPATH=. python3 -m uvicorn app.main:app --reload --port 8000`}
+{`cd frontend
+npm run dev`}
           </pre>
-          <p style={{ color: "#94a3b8", marginBottom: 0 }}>
-            Then verify: <a href="http://localhost:8000/api/v1/health" target="_blank">http://localhost:8000/api/v1/health</a>
-          </p>
         </div>
       )}
 
-      {backendOk === true && (
-        <p style={{ color: "#86efac", marginBottom: 16 }}>Backend connected — ready to score.</p>
+      {backendOk === true && apiBase && (
+        <p style={{ color: "#86efac", marginBottom: 16 }}>
+          Backend connected at {apiBase} — ready to score.
+        </p>
       )}
 
       <div style={{ marginBottom: 16 }}>

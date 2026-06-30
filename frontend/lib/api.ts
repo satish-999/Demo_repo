@@ -1,4 +1,6 @@
-export const API_BASE = process.env.NEXT_PUBLIC_API_URL || "";
+import { getDefaultApiBase } from "./backend";
+
+export const API_BASE = getDefaultApiBase();
 
 export type TitleSummary = {
   id: string;
