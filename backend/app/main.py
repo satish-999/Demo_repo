@@ -7,8 +7,8 @@ from app.routes import router
 Base.metadata.create_all(bind=engine)
 
 app = FastAPI(
-    title="CineWeave RAE POC",
-    description="Small proof-of-concept for ingest, segment scoring, and human review.",
+    title="CineWeave RAE",
+    description="Governance scoring POC for dubbed content — ingest, segment, score, review.",
     version="0.1.0",
 )
 

@@ -1,137 +1,153 @@
-# CineWeave RAE — Proof of Concept
+# CineWeave RAE
 
-A **small, testable slice** of CineWeave you can run on a released movie clip (5–15 minutes recommended).
+Governance scoring proof-of-concept for dubbed film content.
 
-This POC implements the core heart of the product:
+Score a short dubbed clip, review flagged segments, and see how CineWeave works end-to-end.
 
-1. **Ingest** — video/audio + SRT (+ optional script)
-2. **Segment compiler** — one subtitle cue = one review segment with stable IDs
-3. **Hard gates** — rights, spec, consent (POC stubs)
-4. **Soft scorers** — sync timing, semantic fidelity, performance energy
-5. **Verdict** — ACCEPTED / FLAGGED / REJECTED per segment
-6. **Review UI** — Court Desk, Review Queue, Evidence Room
-
-> Not included in this POC: WhisperX, MediaPipe, OPA, Vault, Keycloak, credentials, TPN, full 8-axis scoring.
-
----
-
-## Quick start (local)
-
-### 1. Backend
-
-```bash
-cd backend
-pip install -r requirements.txt
-PYTHONPATH=. python3 -m uvicorn app.main:app --reload --port 8000
 ```
-
-> If you see `uvicorn: command not found`, use `python3 -m uvicorn` (as above) instead of `uvicorn` directly.
-
-### 2. Frontend
-
-```bash
-cd frontend
-npm install
-npm run dev
-```
-
-Open **http://localhost:3000**
-
-### 3. Smoke test with bundled sample (no movie needed)
-
-```bash
-python scripts/demo_ingest.py
-```
-
-Then open the URL printed in the terminal.
-
----
-
-## Test on a released movie (your files)
-
-Use a **short clip** (5–15 min), not a full 2-hour film, for the first run.
-
-### What you need
-
-| File | Required | Purpose |
-|------|----------|---------|
-| `.srt` subtitles for the dubbed version | Yes | Creates segments + dialogue text |
-| Video `.mp4` / `.mkv` OR audio `.wav` | Recommended | Sync + performance scoring |
-| Original script `.txt` | Optional | Semantic comparison (source vs dub) |
-
-### Option A — Web upload (easiest)
-
-1. Go to **http://localhost:3000/ingest**
-2. Enter title name and languages (e.g. `te` → `hi`)
-3. Upload SRT + video/audio + optional script
-4. Click **Submit for Scoring**
-5. Open the title → review flagged segments in **Evidence Room**
-
-### Option B — Local file paths
-
-If files are already on disk (same machine as backend):
-
-```bash
-curl -X POST http://localhost:8000/api/v1/titles/ingest \
-  -H "Content-Type: application/json" \
-  -d '{
-    "title_name": "My Movie Hindi Dub Clip",
-    "language": "hi",
-    "source_language": "te",
-    "video_path": "/absolute/path/to/clip.mp4",
-    "srt_path": "/absolute/path/to/subtitles.srt",
-    "script_path": "/absolute/path/to/script.txt"
-  }'
-```
-
-### Extract a clip from a released movie (your machine)
-
-```bash
-# 5-minute clip starting at 00:10:00
-ffmpeg -ss 00:10:00 -t 00:05:00 -i "/path/to/movie.mp4" -c copy clip.mp4
-
-# Extract audio for scoring
-ffmpeg -i clip.mp4 -vn -acodec pcm_s16le -ar 16000 clip.wav
-```
-
-Use only content you have the legal right to use for testing.
-
----
-
-## What the POC scores
-
-| Check | How it works in POC |
-|-------|---------------------|
-| **Semantic** | Compares script line vs dubbed subtitle (RapidFuzz; optional ML model) |
-| **Sync** | Audio energy peak vs subtitle midpoint (librosa) |
-| **Performance** | Energy / zero-crossing heuristics on audio clip |
-| **Consent gate** | Fails if speaker label starts with `BLOCKED` |
-| **Rights gate** | Fails if title name contains `UNLICENSED` |
-
-Segments with utility **≥ 75** → `ACCEPTED`  
-Between **50–75** → `FLAGGED` (human review)  
-Below **50** → `REJECTED`
-
----
-
-## Optional: better semantic scoring
-
-Install ML model (downloads ~400MB on first run):
-
-```bash
-pip install sentence-transformers torch
-export ENABLE_ML_SEMANTIC=true
+cineweave-rae/
+├── backend/              FastAPI scoring engine
+├── frontend/             Next.js Court Desk + Evidence Room
+├── test-media/
+│   ├── pushpa/           Your test movie files go here
+│   └── uploads/          Auto-stored ingested files
+├── fixtures/             Built-in sample SRT for smoke test
+├── scripts/              Setup and start scripts
+├── .env.example          Copy to .env
+└── package.json          Root npm scripts
 ```
 
 ---
 
-## Docker
+## Quick start (5 minutes)
+
+### 1. Setup (first time only)
+
+```bash
+chmod +x scripts/*.sh
+./scripts/setup.sh
+```
+
+### 2. Add your test files
+
+Place your Pushpa clip in `test-media/pushpa/`:
+
+| File | Required |
+|------|----------|
+| `pushpa_apology.srt` | Yes |
+| `pushpa_apology.mp4` | Recommended |
+| `pushpa_apology.mp3` | Optional |
+
+Use simple filenames (no emojis or special characters).
+
+### 3. Start the app
+
+```bash
+./scripts/start-all.sh
+```
+
+Or in two terminals:
+
+```bash
+./scripts/start-backend.sh    # Terminal 1 — port 8000
+./scripts/start-frontend.sh   # Terminal 2 — port 3000
+```
+
+### 4. Verify backend
+
+Open: http://127.0.0.1:8000/api/v1/health
+
+Must show: `{"status":"ok","service":"cineweave-rae"}`
+
+### 5. Ingest and score
+
+**Web UI:** http://localhost:3000/ingest
+
+**Or CLI** (if files are in `test-media/pushpa/`):
+
+```bash
+./scripts/ingest-pushpa.sh
+```
+
+### 6. Review results
+
+- **Court Desk:** http://localhost:3000
+- **Flagged segments:** open title → Evidence Room
+
+---
+
+## What this POC does
+
+| Step | Description |
+|------|-------------|
+| Ingest | Accepts video/audio + SRT (+ optional script) |
+| Segment | One subtitle cue = one review segment |
+| Hard gates | Consent, rights, spec (POC stubs) |
+| Soft scores | Semantic, sync timing, performance |
+| Verdict | ACCEPTED / FLAGGED / REJECTED per segment |
+| Review | Human accept/reject in Evidence Room |
+
+**Not in this POC:** WhisperX, MediaPipe, OPA, Vault, Keycloak, credentials, TPN.
+
+---
+
+## Troubleshooting
+
+### `ERR_CONNECTION_REFUSED` on localhost:3000
+
+Frontend not started. Run `./scripts/start-frontend.sh`.
+
+### `Failed to fetch` or `Backend not connected`
+
+Backend not started. Run `./scripts/start-backend.sh`.
+
+Verify: http://127.0.0.1:8000/api/v1/health
+
+### `uvicorn: command not found`
+
+Use:
+
+```bash
+PYTHONPATH=backend python3 -m uvicorn app.main:app --reload --port 8000
+```
+
+(from inside `backend/` directory)
+
+### Health works but ingest page says not connected
+
+Restart frontend after `git pull`:
+
+```bash
+cd frontend && npm run dev
+```
+
+Hard refresh browser: **Ctrl+Shift+R**
+
+---
+
+## Environment variables
+
+Copy `.env.example` to `.env`:
+
+```bash
+cp .env.example .env
+```
+
+| Variable | Default | Purpose |
+|----------|---------|---------|
+| `NEXT_PUBLIC_API_URL` | `http://127.0.0.1:8000` | Frontend → backend URL |
+| `MEDIA_ROOT` | `./test-media/uploads` | Stored uploads |
+| `ENABLE_ML_SEMANTIC` | `false` | Use sentence-transformers |
+
+---
+
+## Docker (optional)
 
 ```bash
 docker compose up --build
 ```
 
-- API: http://localhost:8000/docs  
+- API docs: http://localhost:8000/docs
 - UI: http://localhost:3000
 
 ---
@@ -144,27 +160,26 @@ docker compose up --build
 | GET | `/api/v1/dashboard` | Court Desk stats |
 | POST | `/api/v1/titles/ingest` | Ingest by file paths |
 | POST | `/api/v1/titles/ingest/upload` | Ingest by file upload |
-| GET | `/api/v1/titles/{id}` | Title + all segments |
-| GET | `/api/v1/titles/{id}/review-queue` | Flagged segments |
+| GET | `/api/v1/titles/{id}` | Title + segments |
 | POST | `/api/v1/segments/{id}/decision` | Accept / reject |
 
 ---
 
-## Project layout
+## Rename from Demo_repo
 
+If you cloned the old `Demo_repo`:
+
+```bash
+git clone -b cursor/cineweave-rae-clean-a550 \
+  https://github.com/satish-999/Demo_repo.git cineweave-rae
+cd cineweave-rae
+./scripts/setup.sh
 ```
-backend/          FastAPI scoring engine
-frontend/         Next.js Court Desk + Evidence Room
-fixtures/         Sample SRT + script for smoke test
-scripts/          demo_ingest.py helper
-```
+
+Optionally rename the GitHub repository to `cineweave-rae` in GitHub Settings.
 
 ---
 
-## Next steps toward full CineWeave
+## License
 
-- WhisperX forced alignment + MediaPipe lip drift
-- OPA hard gates (spec, rights, consent from database)
-- Decision memory (pgvector RAG)
-- RS256 credentials + delivery gate
-- Keycloak auth + studio isolation
+Private / engineering use. CineWeave RAE POC.

@@ -1,0 +1,13 @@
+{
+  "name": "cineweave-rae",
+  "version": "0.1.0",
+  "private": true,
+  "description": "CineWeave RAE — governance scoring POC for dubbed content",
+  "scripts": {
+    "setup": "./scripts/setup.sh",
+    "start": "./scripts/start-all.sh",
+    "backend": "./scripts/start-backend.sh",
+    "frontend": "./scripts/start-frontend.sh",
+    "demo": "python3 scripts/demo_ingest.py"
+  }
+}

@@ -36,7 +36,7 @@ def _title_summary(db: Session, title: Title) -> TitleSummary:
 
 @router.get("/health")
 def health():
-    return {"status": "ok", "service": "cineweave-rae-poc"}
+    return {"status": "ok", "service": "cineweave-rae"}
 
 
 @router.get("/dashboard", response_model=DashboardStats)

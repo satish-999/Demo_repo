@@ -8,8 +8,8 @@ from app.config import settings
 from app.parsers.srt import SubtitleCue
 
 
-def make_segment_id(title_id: str, language: str, start_ms: int) -> str:
-    raw = f"{title_id}:{language}:{start_ms}"
+def make_segment_id(title_id: str, language: str, start_ms: int, index: int) -> str:
+    raw = f"{title_id}:{language}:{start_ms}:{index}"
     return hashlib.sha256(raw.encode()).hexdigest()[:16]
 
 
@@ -29,7 +29,7 @@ def compile_segments(
 
         segments.append(
             {
-                "id": make_segment_id(title_id, language, cue.start_ms),
+                "id": make_segment_id(title_id, language, cue.start_ms, idx),
                 "title_id": title_id,
                 "start_ms": cue.start_ms,
                 "end_ms": cue.end_ms,
