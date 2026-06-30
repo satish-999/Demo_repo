@@ -1,0 +1,19 @@
+1
+00:00:01,000 --> 00:00:04,500
+ARJUN: I will protect this village no matter what happens.
+
+2
+00:00:05,000 --> 00:00:08,200
+MEERA: You promised your father the same thing years ago.
+
+3
+00:00:09,000 --> 00:00:12,800
+ARJUN: That promise still holds. I will try my best today.
+
+4
+00:00:13,500 --> 00:00:16,000
+BLOCKED_ACTOR: This line should fail consent in POC demo.
+
+5
+00:00:17,000 --> 00:00:20,500
+NARRATOR: The storm arrived faster than anyone expected.

@@ -1,0 +1,26 @@
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+backend/data/
+backend/media/
+
+# Node
+node_modules/
+frontend/.next/
+
+# Environment and secrets
+.env
+
+# Uploaded media (keep folder structure)
+test-media/uploads/*
+!test-media/uploads/.gitkeep
+test-media/pushpa/*.mp4
+test-media/pushpa/*.mp3
+test-media/pushpa/*.mpeg
+test-media/pushpa/*.mkv
+test-media/pushpa/*.srt
+test-media/pushpa/*.txt
+
+# OS
+.DS_Store

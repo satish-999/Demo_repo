@@ -1,0 +1,5 @@
+ARJUN: I will protect this village no matter what happens.
+MEERA: You promised your father the same thing many years ago.
+ARJUN: I will protect this village with my life.
+BLOCKED_ACTOR: This line should fail consent in POC demo.
+NARRATOR: The storm arrived faster than anyone expected.
