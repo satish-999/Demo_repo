@@ -1,15 +1,22 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 
-const API_BASE = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
+const API_BASE = process.env.NEXT_PUBLIC_API_URL || "";
 
 export default function IngestPage() {
   const router = useRouter();
   const [mode, setMode] = useState<"upload" | "path">("upload");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [backendOk, setBackendOk] = useState<boolean | null>(null);
+
+  useEffect(() => {
+    fetch(`${API_BASE}/api/v1/health`)
+      .then((res) => setBackendOk(res.ok))
+      .catch(() => setBackendOk(false));
+  }, []);
 
   async function onSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
@@ -18,6 +25,12 @@ export default function IngestPage() {
     const form = new FormData(e.currentTarget);
 
     try {
+      if (backendOk === false) {
+        throw new Error(
+          "Backend is not running. Open a terminal and run: cd backend && PYTHONPATH=. python3 -m uvicorn app.main:app --reload --port 8000"
+        );
+      }
+
       if (mode === "upload") {
         const body = new FormData();
         body.append("title_name", String(form.get("title_name")));
@@ -59,7 +72,14 @@ export default function IngestPage() {
         router.push(`/titles/${title.id}`);
       }
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Ingest failed");
+      const message = err instanceof Error ? err.message : "Ingest failed";
+      if (message === "Failed to fetch") {
+        setError(
+          "Cannot reach backend API. Start backend first: cd backend && PYTHONPATH=. python3 -m uvicorn app.main:app --reload --port 8000"
+        );
+      } else {
+        setError(message);
+      }
     } finally {
       setLoading(false);
     }
@@ -71,6 +91,26 @@ export default function IngestPage() {
       <p style={{ color: "#94a3b8" }}>
         Upload a short clip from a released movie: video/audio + SRT subtitles. Optional script improves semantic scoring.
       </p>
+
+      {backendOk === false && (
+        <div className="card" style={{ borderColor: "#ef4444", marginBottom: 16 }}>
+          <strong style={{ color: "#fca5a5" }}>Backend not connected</strong>
+          <p style={{ margin: "8px 0 0", color: "#94a3b8" }}>
+            The web UI is running, but the scoring API on port 8000 is not. Open a second terminal and run:
+          </p>
+          <pre style={{ background: "#0b1020", padding: 12, borderRadius: 8, overflow: "auto" }}>
+{`cd backend
+PYTHONPATH=. python3 -m uvicorn app.main:app --reload --port 8000`}
+          </pre>
+          <p style={{ color: "#94a3b8", marginBottom: 0 }}>
+            Then verify: <a href="http://localhost:8000/api/v1/health" target="_blank">http://localhost:8000/api/v1/health</a>
+          </p>
+        </div>
+      )}
+
+      {backendOk === true && (
+        <p style={{ color: "#86efac", marginBottom: 16 }}>Backend connected — ready to score.</p>
+      )}
 
       <div style={{ marginBottom: 16 }}>
         <button className="btn" style={{ marginRight: 8 }} onClick={() => setMode("upload")}>
@@ -138,7 +178,7 @@ export default function IngestPage() {
         )}
 
         {error && <p style={{ color: "#fca5a5" }}>{error}</p>}
-        <button className="btn primary" type="submit" disabled={loading}>
+        <button className="btn primary" type="submit" disabled={loading || backendOk === false}>
           {loading ? "Scoring..." : "Submit for Scoring"}
         </button>
       </form>
