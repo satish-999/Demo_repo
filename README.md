@@ -21,11 +21,11 @@ This POC implements the core heart of the product:
 
 ```bash
 cd backend
-python -m venv .venv
-source .venv/bin/activate
 pip install -r requirements.txt
-uvicorn app.main:app --reload --port 8000
+PYTHONPATH=. python3 -m uvicorn app.main:app --reload --port 8000
 ```
+
+> If you see `uvicorn: command not found`, use `python3 -m uvicorn` (as above) instead of `uvicorn` directly.
 
 ### 2. Frontend
 
